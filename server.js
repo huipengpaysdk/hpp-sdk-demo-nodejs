@@ -1,15 +1,14 @@
 // Module Dependencies
 var http = require('http'),
-    express = require('express'),//expresses
-    routes = require('./router'),//路由
+    express = require('express'), //expresses
+    routes = require('./router'), //路由
     expresslogger = require('morgan'),
     methodOverride = require('method-override'),
     bodyParser = require('body-parser'),
     errorHandler = require('errorhandler'),
     fs = require('fs'),
     log4js = require('log4js'),
-    path = require('path')
-    ;
+    path = require('path');
 
 //logs目录
 var log4jsFileSystem = 'd://tmp//logs//';
@@ -43,10 +42,14 @@ app.set('views', path.normalize(__dirname) + '/public');
 app.use(expresslogger('dev'));
 app.use(methodOverride());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.text());
+app.use(bodyParser.raw());
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.engine('html', require('ejs').renderFile);//使用ejs作为模板语言
+app.engine('html', require('ejs').renderFile); //使用ejs作为模板语言
 
 if ('development' == app.get('env')) {
     app.use(errorHandler());
@@ -55,6 +58,6 @@ if ('development' == app.get('env')) {
 //routers
 app.use(routes);
 
-http.createServer(app).listen(app.get('port'), function () {
+http.createServer(app).listen(app.get('port'), function() {
     console.log('hpp-sdk-demo server listening on port ' + app.get('port'));
 });

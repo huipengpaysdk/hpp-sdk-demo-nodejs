@@ -17,14 +17,14 @@ logger.setLevel('DEBUG');
 //-----------------------------routers----------------------------//
 
 // 订单明细列表
-router.get('/orders', function (req, res) {
+router.get('/orders', function(req, res) {
     res.render('order-list.html', {
         data: repository.findAll()
     });
 });
 
 //明细跳转
-router.get('/jump/:id', function (req, res) {
+router.get('/jump/:id', function(req, res) {
 
     if (!req.params.id) {
         return;
@@ -39,7 +39,7 @@ router.get('/jump/:id', function (req, res) {
 });
 
 //状态更新
-router.get('/order-query/:id', function (req, res) {
+router.get('/order-query/:id', function(req, res) {
 
     if (!req.params.id) {
         return;
@@ -60,10 +60,10 @@ router.get('/order-query/:id', function (req, res) {
     logger.warn('开始查询订单[%s]的状态', queryRequest.tradeSn);
     makeHppRequest(
         hppConfig.urlOfOrderQuery, queryRequest,
-        function (error, body) {
+        function(error, body) {
             res.render('error.html', JSON.parse(body));
         },
-        function (responseData) {
+        function(responseData) {
             order.status = responseData.status;
             res.redirect('/orders');
         }
@@ -72,7 +72,7 @@ router.get('/order-query/:id', function (req, res) {
 
 
 // API异步支付
-router.post('/pay', function (req, res) {
+router.post('/pay', function(req, res) {
     var orderNumber = uuid.v1();
 
     var payRequest = {
@@ -89,10 +89,10 @@ router.post('/pay', function (req, res) {
     logger.warn('商户订单[%s]签名完成,开始使用proxy进行请求输出', orderNumber);
     makeHppRequest(
         hppConfig.urlOfPay, payRequest,
-        function (error, body) {
+        function(error, body) {
             res.render('error.html', JSON.parse(body));
         },
-        function (responseData) {
+        function(responseData) {
             payRequest.status = 'TRADE_CREATED';
             payRequest.createOn = moment().format('YY-MM-DD HH:mm:ss');
             payRequest.responseData = responseData;
@@ -105,7 +105,7 @@ router.post('/pay', function (req, res) {
 });
 
 //前端控制用户页面跳转
-router.post('/callback/return/:id', function (req, res) {
+router.post('/callback/return/:id', function(req, res) {
     var _id = req.params.id;
     logger.warn('收到订单[%s]的跳转响应', _id);
 
@@ -121,7 +121,7 @@ router.post('/callback/return/:id', function (req, res) {
 });
 
 //后端通知入库查询
-router.post('/callback/notify', function (req, res) {
+router.all('/callback/notify', function(req, res) {
     var notifyData = aesUtils.decrypt(req.body, hppConfig.signToken);
     var notifyObj = JSON.parse(notifyData);
     logger.warn('收到[%s][%s]入账响应', notifyObj.payInterface, notifyObj.orderNumber);
@@ -129,10 +129,15 @@ router.post('/callback/notify', function (req, res) {
     if (notifyObj.status == 'NOTIFY_CONFIRM') {
         logger.warn('订单[%s]已支付成功', notifyObj.orderNumber);
         var _order = repository.find(notifyObj.orderNumber);
-        _order.status = notifyObj.status;
 
-        logger.warn('[%s][%s]跳转响应完成,开始发货...', notifyObj.payInterface, notifyObj.orderNumber);
+        if (_order) {
+            _order.status = notifyObj.status;
+
+            logger.warn('[%s][%s]跳转响应完成,开始发货...', notifyObj.payInterface, notifyObj.orderNumber);
+        }
     }
+
+    res.status(200).end();//输出一个200信号,表示入账成功
 });
 
 
@@ -156,7 +161,7 @@ function makeHppRequest(url, requestBody, onError, onSuccess) {
             'User-Agent': 'Mozilla/5.0 (X11; Linux i586; rv:31.0) Gecko/20100101 Firefox/31.0', //伪造一个请求头
             'X-mt-sno': hppConfig.xMtSno
         }
-    }, function (error, response, body) {
+    }, function(error, response, body) {
         if (error || response.statusCode != 200) {
             logger.error('请求错误[%s]', error);
             onError(error, body);
